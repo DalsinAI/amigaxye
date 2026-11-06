@@ -10,7 +10,7 @@ There is a terrible bug when compiling tinyxml with STL support in combination o
     #define PALETTE_BASE_SIZE 20
 #endif
 
-#include "tinyxml/xye_tinyxml.h"
+#include <tinyxml.h>
 #include<string>
 
 using std::string;

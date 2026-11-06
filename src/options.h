@@ -1,4 +1,4 @@
-#include "tinyxml/xye_tinyxml.h"
+#include <tinyxml.h>
 #include "vxsdl.h"
 
 #ifndef OPTIONS_H
