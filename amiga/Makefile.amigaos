@@ -1,0 +1,100 @@
+# Xye 0.12.2 for AmigaOS 3.x, 68040/68060 + FPU, on OpenGPU's SDL 1.2
+# (sdl12-compat).
+#
+#   make -f amiga/Makefile.amigaos -j2 dist \
+#        STOVE=/path/to/openamigagcc-16.2.0-open4 \
+#        NDK=/path/to/OpenNDK/Include_H SDLKIT=/path/to/opengpu-sdk \
+#        DEPS=/path/to/m68k-amigaos
+#
+# Makefile.am's sources, with DATA_PATH the drawer's data/. SDLKIT is the
+# OpenGPU developer kit: libSDL.a, sdl12-compat on SDL2.module. It has no
+# SDL_image or SDL_ttf 1.2: the Team's amiga/sdl_image_lite.c (PNG on
+# libpng) and SDL_ttf 2.0.11 (amiga/sdl_ttf, on the Team's static
+# FreeType) stand in. TinyXML (Debian builds Xye with the system's) is the
+# Team's copy from the Gigalomania port (amiga/tinyxml). DEPS has the
+# Team's static FreeType, libpng, zlib and bzip2
+# (/mnt/amigachrome/team2/deps/m68k-amigaos). SDL_RWFromFile is plain stdio
+# (amiga/amiga_rwops.c, -Wl,--wrap), as in the Hex-a-hop port: SDL_ttf opens
+# its fonts with it. The fonts are DejaVu Sans
+# and Sans Bold (amiga/fonts), which Debian's source leaves out.
+
+STOVE   ?= $(HOME)/CradleLab/toolchain/openamigagcc-16.2.0-open4-x86_64-linux
+NDK     ?= $(HOME)/CradleLab/gfopensdk/OpenNDK/Include_H
+SDLKIT  ?= /mnt/amigachrome/team2/deps/opengpu-sdk
+DEPS    ?= /mnt/amigachrome/team2/deps/m68k-amigaos
+CC      = $(STOVE)/bin/m68k-amigaos-gcc
+CXX     = $(STOVE)/bin/m68k-amigaos-g++
+STRIP   = $(STOVE)/bin/m68k-amigaos-strip
+CPU     ?= -m68040 -m68881
+# -fno-tree-loop-distribute-patterns: GCC 16's loop miscompile (the kit's
+# sdl2-config gives it for GCC 16 too).
+OPT     ?= -O2 -fomit-frame-pointer -fno-tree-loop-distribute-patterns
+
+BUILD   = build/amigaos
+OBJDIR  = $(BUILD)/obj
+PROG    = Xye
+OUT     = dist/Xye
+
+DEFS    = -D__amigaos__ -DNDEBUG -DDATA_PATH=\"PROGDIR:data/\" -DTIXML_USE_STL
+INC     = -Iamiga/include -Iamiga/include/SDL -Iamiga/tinyxml -Isrc \
+          -I$(SDLKIT)/include/SDL -I$(SDLKIT)/include -I$(DEPS)/include
+CFLAGS  = -noixemul $(OPT) $(CPU) -fno-common -MMD -MP -w
+CXXFLAGS = $(CFLAGS) $(DEFS) $(INC) -std=gnu++11 -include amiga/amiga_prefix.hpp
+LDFLAGS = -noixemul $(CPU) -Wl,--wrap=SDL_RWFromFile
+LIBS    = -L$(SDLKIT)/lib -L$(DEPS)/lib -lSDL -lfreetype -lpng -lz -lbz2 -lpthread -lm
+
+CXXSRC  = src/main.cpp src/browser.cpp src/font.cpp src/gen.cpp src/kye_script.cpp \
+          src/levels.cpp src/options.cpp src/vxsdl.cpp src/xye.cpp src/xsb_level.cpp \
+          src/xye_script.cpp src/listbox.cpp src/record.cpp src/xyedit.cpp \
+          src/editorsave.cpp src/editorload.cpp src/dialogs.cpp src/window.cpp src/skins.cpp \
+          amiga/tinyxml/tinyxml.cpp amiga/tinyxml/tinyxmlerror.cpp amiga/tinyxml/tinyxmlparser.cpp
+CSRC    = amiga/stack.c amiga/amiga_rwops.c amiga/sdl_image_lite.c amiga/sdl_ttf/SDL_ttf.c
+
+OBJS    = $(CXXSRC:%.cpp=$(OBJDIR)/%.o) $(CSRC:%.c=$(OBJDIR)/%.o)
+ICONS   = $(wildcard amiga/icons/*.info)
+
+all: $(BUILD)/$(PROG)
+
+$(BUILD)/$(PROG): $(OBJS)
+	$(CXX) $(LDFLAGS) -o $@.debug $(OBJS) $(LIBS)
+	$(STRIP) -o $@ $@.debug
+
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+$(OBJDIR)/amiga/sdl_ttf/%.o: amiga/sdl_ttf/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -std=gnu99 -Iamiga/include/SDL -I$(SDLKIT)/include/SDL \
+	  -I$(DEPS)/include/freetype2 -DAMIGA_NO_FT_STROKER -c -o $@ $<
+
+$(OBJDIR)/amiga/%.o: amiga/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -std=gnu99 -Iamiga/include/SDL -I$(SDLKIT)/include/SDL \
+	  -I$(DEPS)/include -I$(NDK) -Wall -c -o $@ $<
+
+# The drawer: the program; data/ with the levels and res/ (the skins, and
+# the DejaVu fonts, amiga/fonts); ReadMe, upstream's ReadMe.html and the
+# licences. Xye writes its settings (xyeconf.xml) in data/.
+dist: $(BUILD)/$(PROG) $(ICONS) AMIGA_PORT.md
+	rm -rf $(OUT) && mkdir -p $(OUT)/data
+	cp $(BUILD)/$(PROG) $(OUT)/
+	cp -R levels res $(OUT)/data/
+	rm -f $(OUT)/data/res/xye.xcf
+	cp amiga/fonts/DejaVuSans.ttf amiga/fonts/DejaVuSans-Bold.ttf $(OUT)/data/res/
+	cp AMIGA_PORT.md $(OUT)/ReadMe
+	cp ReadMe.html $(OUT)/
+	cp COPYING $(OUT)/COPYING.txt
+	cp amiga/fonts/DejaVu-LICENSE.txt $(OUT)/COPYING-DejaVu.txt
+	cp amiga/sdl_ttf/COPYING $(OUT)/COPYING-SDL_ttf.txt
+	cp amiga/icons/Xye.info amiga/icons/ReadMe.info $(OUT)/
+	for f in COPYING.txt COPYING-DejaVu.txt COPYING-SDL_ttf.txt; do cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
+	cp amiga/icons/Folder.info $(OUT)/data.info
+	cp amiga/icons/Xye-drawer.info dist/Xye.info
+
+-include $(OBJS:.o=.d)
+
+clean:
+	rm -rf $(BUILD)
+
+.PHONY: all clean dist

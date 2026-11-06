@@ -19,6 +19,30 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "vxsdl.h"
 
+#ifdef __amigaos__
+/* AmigaOS: each SDL call goes to OpenGPU's SDL2.module, too slow to make
+ * once a pixel; RecolorPartOfSurface unpacks its true-colour pixels here,
+ * as SDL 1.2's SDL_GetRGBA does. */
+static inline void amiga_GetRGBA(Uint32 pixel, const SDL_PixelFormat *fmt,
+                                 Uint8 *r, Uint8 *g, Uint8 *b, Uint8 *a)
+{
+    Uint32 v;
+    v = (pixel & fmt->Rmask) >> fmt->Rshift;
+    *r = (Uint8)((v << fmt->Rloss) + (v >> (8 - (fmt->Rloss << 1))));
+    v = (pixel & fmt->Gmask) >> fmt->Gshift;
+    *g = (Uint8)((v << fmt->Gloss) + (v >> (8 - (fmt->Gloss << 1))));
+    v = (pixel & fmt->Bmask) >> fmt->Bshift;
+    *b = (Uint8)((v << fmt->Bloss) + (v >> (8 - (fmt->Bloss << 1))));
+    if (fmt->Amask) {
+        v = (pixel & fmt->Amask) >> fmt->Ashift;
+        *a = (Uint8)((v << fmt->Aloss) + (v >> (8 - (fmt->Aloss << 1))));
+    } else {
+        *a = 255;
+    }
+}
+#define SDL_GetRGBA amiga_GetRGBA
+#endif
+
 Uint8 Look[256][256];
 bool LookSet=false;
 
