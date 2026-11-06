@@ -22,7 +22,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "kye_script.h"
 #include "xsb_level.h"
 #include "gen.h"
-#include "tinyxml/xye_tinyxml.h"
+#include <tinyxml.h>
 #include<string>
 
 

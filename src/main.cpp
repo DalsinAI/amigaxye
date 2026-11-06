@@ -87,12 +87,16 @@ int main ( int argc, char** argv )
     while ( (i>=0) && (options::Dir[i]!= '\\') && (options::Dir[i]!= '/') ) {
         i--;
     }
-    options::Dir.resize(i);
+    options::Dir.resize(i+1);
     while (i>=0) {
         if (options::Dir[i]=='\\') {
             options::Dir[i] = '/';
         }
         i--;
+    }
+
+    if (options::Dir[options::Dir.length()-1]=='/') {
+	    options::Dir = options::Dir.substr(0, options::Dir.length()-1);
     }
 
     cout << "Will look on "<<options::Dir<<" for data files.\n"<<endl;

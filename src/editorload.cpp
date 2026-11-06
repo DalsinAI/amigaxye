@@ -1,6 +1,6 @@
 #include "xyedit.h"
 #include "xye.h"
-#include "tinyxml/xye_tinyxml.h"
+#include <tinyxml.h>
 #include "kye_script.h"
 #include "xye_script.h"
 #include<iostream>
