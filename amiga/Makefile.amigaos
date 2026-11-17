@@ -41,7 +41,7 @@ INC     = -Iamiga/include -Iamiga/include/SDL -Iamiga/tinyxml -Isrc \
 CFLAGS  = -noixemul $(OPT) $(CPU) -fno-common -MMD -MP -w
 CXXFLAGS = $(CFLAGS) $(DEFS) $(INC) -std=gnu++11 -include amiga/amiga_prefix.hpp
 LDFLAGS = -noixemul $(CPU) -Wl,--wrap=SDL_RWFromFile
-LIBS    = -L$(SDLKIT)/lib -L$(DEPS)/lib -lSDL -lfreetype -lpng -lz -lbz2 -lpthread -lm
+LIBS    = -L$(SDLKIT)/lib -L$(DEPS)/lib -lSDL -lfreetype -lpng -lz -lpthread -lm
 
 CXXSRC  = src/main.cpp src/browser.cpp src/font.cpp src/gen.cpp src/kye_script.cpp \
           src/levels.cpp src/options.cpp src/vxsdl.cpp src/xye.cpp src/xsb_level.cpp \
@@ -90,6 +90,7 @@ dist: $(BUILD)/$(PROG) $(ICONS) AMIGA_PORT.md
 	cp amiga/icons/Xye.info amiga/icons/ReadMe.info $(OUT)/
 	for f in COPYING.txt COPYING-DejaVu.txt COPYING-SDL_ttf.txt; do cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
 	cp amiga/icons/Xye-drawer.info dist/Xye.info
+	cp package/Install-Xye package/Install-Xye.info dist/
 
 -include $(OBJS:.o=.d)
 
